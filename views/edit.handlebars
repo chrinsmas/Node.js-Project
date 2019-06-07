@@ -1,0 +1,122 @@
+<style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+table tr:nth-child(even) {
+    background-color: #eee;
+}
+table tr:nth-child(odd) {
+    background-color: #fff;
+}
+table th {
+    color: white;
+    background-color: black;
+}
+
+</style>
+<h1>Workout Tracker</h1>
+<IFRAME style="display:none" name="hidden-form"></IFRAME>
+ <form action="/save-workout/" id="workout-form"
+           method="post" target="hidden-form">
+
+   <table id="inputTable">
+       <tr>
+           <th>Exercise name </th>
+           <td><input name='name' type='text' id='name'/></td>
+      </tr>
+      <tr>
+          <th>Nmber of reps </th>
+          <td><input name='reps' type='int' id='reps' /></td>
+      </tr>
+      <tr>
+          <th>Weight </th>
+          <td><input name='weight' type='int' id='weight' /></td>
+      </tr>
+      <tr>
+        <th>lbs or kg </th>
+        <td><input id="unit" name="unit" type='radio' value='1'>lbs
+        <input id="unit" name="unit" type='radio' value='0'>kg</td>
+      </tr>
+        <th>Due date </th>
+        <td><input name='date' type='date' id='date' /></td>
+      <tr>
+
+      </tr>
+      <tr>
+        <th>Click save -> </th>
+        <td>
+
+        <input type="submit" value="save" />
+        </td>
+      </tr>
+  </table>
+  </form>
+
+<br><br>
+
+
+
+<script>
+function httpGet(theUrl)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
+}
+
+
+var getUrlParameter = function getUrlParameter(sParam) {
+    var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return sParameterName[1] === undefined ? true : sParameterName[1];
+        }
+    }
+};
+
+function appendWorkout(workout) {
+    $('#name').attr('value', workout.name);
+    $('#reps').attr('value', workout.reps);
+    $('#weight').attr('value', workout.weight);
+    $('input[name="' + "unit"+ '"][value="' + workout.lbs + '"]').prop('checked', true);
+    $('#date').attr('value', workout.date);
+}
+
+
+$( "#workout-form" ).submit(function( event ) {
+  // Stop form from submitting normally
+  event.preventDefault();
+
+    var id = getUrlParameter('id');
+
+    name = $('#name').val();
+    reps = $('#reps').val();
+    weight = $('#weight').val();
+    unit = $('#unit').val();
+    date = $('#date').val();
+
+  $.post("/save-workout", {'name': name, 'reps': reps, 'weight': weight, 'date': date, 'unit': unit, 'id':id}, function(data) {
+    //alert("Success! Loading Home Page...");
+    window.location.href = "/";
+
+  }, 'json')
+    .fail(function(data) {
+      alert( "error" + JSON.stringify(data) );
+    });
+});
+
+
+var id = getUrlParameter('id');
+var workout = httpGet("/get-workout/?id=" + id);
+appendWorkout(JSON.parse(workout)[0]);
+
+</script>

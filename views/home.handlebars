@@ -1,0 +1,201 @@
+<style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+table tr:nth-child(even) {
+    background-color: #eee;
+}
+table tr:nth-child(odd) {
+    background-color: #fff;
+}
+table th {
+    color: white;
+    background-color: black;
+}
+.button {
+  text-decoration: none;
+  background-color: white;
+  color: #333333;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+}
+</style>
+<h1>Workout Tracker</h1>
+<IFRAME style="display:none" name="hidden-form"></IFRAME>
+ <form action="/save-data/" id="workout-form"
+           method="post" target="hidden-form">
+
+   <table id="inputTable">
+       <tr>
+           <th>Exercise name </th>
+           <td><input name='name' type='text' id='name'/></td>
+      </tr>
+      <tr>
+          <th>Nmber of reps </th>
+          <td><input name='reps' type='int' id='reps' /></td>
+      </tr>
+      <tr>
+          <th>Weight </th>
+          <td><input name='weight' type='int' id='weight' /></td>
+      </tr>
+      <tr>
+        <th>lbs or kg </th>
+        <td><input id="unit" name="unit" type='radio' value='1'>lbs
+        <input id="unit" name="unit" type='radio' value='0'>kg</td>
+      </tr>
+        <th>Due date </th>
+        <td><input name='date' type='date' id='date' /></td>
+      <tr>
+
+      </tr>
+      <tr>
+        <th>Click add -> </th>
+        <td>
+
+        <input type="submit" value="add" />
+        </td>
+      </tr>
+  </table>
+  </form>
+
+<br><br>
+     <table id="resultsTable">
+       <tr>
+          <th>Exercise name </th>
+          <th>Nmber of reps </th>
+          <th>Weight </th>
+          <th>lbs or Kg </th>
+          <th>Due date </th>
+          <th>Edit </th>
+          <th>Delete </th>
+      </tr>
+    </table>
+
+
+
+  <script>
+$( "#workout-form" ).submit(function( event ) {
+    // Stop form from submitting normally
+    event.preventDefault();
+
+    var name = $("#name").val();
+    var reps = $("#reps").val();
+    var weight = $("#weight").val();
+  //  var date = $.datepicker.parseDate('yy/mm/dd','2016-07-31');
+    var unit = $("#unit").val();
+    var date = new Date('07-31-2016');
+    var dateString = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+
+    var fullworkout = $("#workout-form").serialize();
+
+    $.post("/save-data", fullworkout, function(data) {
+      //  alert( "success" + JSON.stringify(data) );
+      reloadTable();
+    }, 'json')
+      .fail(function(data) {
+        alert( "error" + JSON.stringify(data) );
+      });
+  });
+
+
+function deleteRow(obj, id) {
+    //Delete from client
+    var index = obj.parentNode.parentNode.rowIndex;
+    var table = document.getElementById("resultsTable");
+    table.deleteRow(index);
+
+    // Delete from db
+    $.post( "/delete-data", {'id': id}, function(data) {
+    }, 'json')
+    .fail(function(data) {
+      //alert( "error" + JSON.stringify(data) );
+    });
+}
+
+function submitFORM(path, params, method) {
+    method = method || "post";
+
+    var form = document.createElement("form");
+    form.setAttribute("method", method);
+    form.setAttribute("action", path);
+
+    //Move the submit function to another variable
+    //so that it doesn't get overwritten.
+    form._submit_function_ = form.submit;
+
+    for(var key in params) {
+        if(params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+
+            form.appendChild(hiddenField);
+         }
+    }
+
+    document.body.appendChild(form);
+    form._submit_function_();
+}
+
+function httpGet(theUrl)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
+}
+
+function appendWorkout(workout) {
+    var table = document.getElementById('resultsTable');
+    var row = table.insertRow(table.rows.length);
+
+    // Insert new cells (<td> elements) at the 1st and 2nd position of the "new" <tr> element:
+    var nameCell = row.insertCell(0);
+    var repsCell = row.insertCell(1);
+    var weightCell = row.insertCell(2);
+    var unitCell = row.insertCell(3);
+    var dateCell = row.insertCell(4);
+    var editCell = row.insertCell(5);
+    var deleteCell = row.insertCell(6);
+
+    // Add some text to the new cells:
+    nameCell.innerHTML = workout.name;
+    repsCell.innerHTML = workout.reps;
+    weightCell.innerHTML = workout.weight;
+    if (workout.lbs == 1) {
+      unitCell.innerHTML = "lbs";
+    } else {
+      unitCell.innerHTML = "kg";
+    }
+    dateCell.innerHTML = workout.date;
+    editCell.innerHTML = '<a href="/edit?id='+workout.id+'" class="button clicker" value="edit">Edit</a>';
+    deleteCell.innerHTML = '<input type="button" value = "delete" onClick="Javacsript:deleteRow(this, '+workout.id+')">';
+}
+
+function populateTable() {
+    var workouts = httpGet("/get-data");
+    workoutsObj = JSON.parse(workouts);
+    for (i = 0; i < workoutsObj.length; i++) {
+        var workout = workoutsObj[i];
+        appendWorkout(workout);
+    }
+}
+
+function reloadTable() {
+  var tableHeaderRowCount = 1;
+  var table = document.getElementById('resultsTable');
+  var rowCount = table.rows.length;
+  for (var i = tableHeaderRowCount; i < rowCount; i++) {
+      table.deleteRow(tableHeaderRowCount);
+  }
+  populateTable();
+}
+
+
+populateTable();
+</script>
